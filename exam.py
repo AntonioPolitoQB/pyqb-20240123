@@ -113,9 +113,9 @@ pass
 # - a parameter $\alpha$ is normally distributed with $\mu = 0$ and $\sigma = 1$ 
 # - a parameter $\beta$ is normally distributed with $\mu = 1$ and $\sigma = 2$ 
 # - a parameter $\gamma$ is exponentially distributed with $\lambda = 1$
-# - the observed `Yolk` (computed as in exercise 7) is normally distributed with standard deviation $\gamma$ and a mean given by $\alpha + \beta \cdot V$ (where $V$ is the volume computed as in Exercise 7).
+# - the observed `Yolk` is normally distributed with standard deviation $\gamma$ and a mean given by $\alpha + \beta \cdot V$ (where $V$ is the volume computed as in Exercise 7).
 #
-# Code this model with pymc, sample the model, and plot the summary of the resulting estimation by using `az.plot_posterior`.
+# Code this model with pymc, sample the model, and plot the summary of the resulting estimation by using `az.plot_posterior`. Feel free to ignore the warning about the missing values.
 #
 #
 #
