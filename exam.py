@@ -53,14 +53,29 @@ import arviz as az   # type: ignore
 #
 #
 
-pass
+data = pd.read_csv('EPE.csv')
+data.head()
 
 # ### Exercise 2 (max 3 points)
 #
 # Add a column `Species` with the latin name of the species who produced the egg (see the description on the Image column of data).
 #
 
-pass
+# +
+SPECIES = {
+        '1': 'Anas platyrhynchos domesticus', 
+        '2': 'Anser cygnoides domesticus',
+        '5': 'Alectoris chukar domesticus', 
+        '3': 'Coturnix japonica domesticus', 
+        '4': 'Gallus gallus domesticus',
+        '7': 'Phasianus colchicus domesticus'
+}
+
+
+data['Species'] = data['Image'].str.split('-').apply(lambda s: SPECIES[s[0]])
+
+
+# -
 
 # ### Exercise 3 (max 7 points)
 #
@@ -73,38 +88,64 @@ pass
 #
 # To get the full marks, you should declare correctly the type hints and add a test within a doctest string.
 
-pass
+def ellipsoid_volume(a: float, b: float, c: float) -> float:
+    """Return the volume of an ellipsoid with semi-axis a, b, c
+    
+    >>> abs(ellipsoid_volume(3., 4., 5.) - 251.33) < 10e-3
+    True
+    """
+    assert a > 0 and b > 0 and c > 0
+    return (4/3)*np.pi*a*b*c
+    
+
 
 # +
 # You can test your docstrings by uncommenting the following two lines
 
-# import doctest
-# doctest.testmod()
+import doctest
+doctest.testmod()
 # -
 
 # ### Exercise 4 (max 4 points)
 #
 # Consider the ellipsoid $E$ defined by a `scan.length` (the axis $l$), a `scan.width` (an axis $w$ orthogonal to $l$) and a third axis $x$ (orthogonal to both $l$ and $w$). Then assume `scan.area` is given by $\pi\frac{scan.width}{2}\frac{x}{2}$. Add a column to the data with the values of $x$. 
 
-pass
+data['x'] = 4*data['scan.area']/(np.pi*data['scan.width'])
 
 # ### Exercise 5 (max 4 points)
 #
 # Add a column to the data with the longest axes (among `scan.width`, `scan.length`, and $x$, see previous exercise).
 
-pass
+data['longest'] = data[['scan.width', 'scan.length', 'x']].apply(lambda t: max(t), axis=1)
+
+assert (data['longest'] >= data['x']).all() and (data['longest'] >= data['scan.width']).all() and (data['longest'] >= data['scan.length']).all()
 
 # ### Exercise 6 (max 4 points)
 #
 # Plot together the histograms of `scan.area` for each species.
 
-pass
+fig, ax = plt.subplots(1)
+for s in data['Species'].unique():
+    ax.hist(data[data['Species'] == s]['scan.area'], density=True, label=s)
+ax.set_title('Planar area of eggs')
+_ = ax.legend()
 
 # ### Exercise 7 (max 4 points)
 #
 # Make a scatter plot with the volume (computed using `scan.width`, `scan.length`, and $x$ -- see Exercise 4 -- and the function defined in Exercise 3) versus the sum of Yolk and Albumen. Color the points according to the species. Pay attention to interpret correctly the numbers as axis or semi-axis.
 
-pass
+data['volume'] = data[['scan.width', 'scan.length','x']].apply(lambda t: ellipsoid_volume(t[0]/2, t[1]/2, t[2]/2), axis=1)
+
+# +
+fig, ax = plt.subplots(1)
+
+for s in data['Species'].unique():
+    view = data[data['Species'] == s]
+    ax.scatter(view['volume'], view['Yolk'] + view['Albumen'], label=s)
+ax.set_xlabel('Volume (cm$^3$)')
+ax.set_ylabel('Yolk + Albumen (g)')
+_ = ax.legend()
+# -
 
 # ### Exercise 8 (max 5 points)
 #
@@ -121,5 +162,20 @@ pass
 #
 #
 
-pass
+with pm.Model() as model:
+    
+    alpha = pm.Normal('alpha', mu=0, sigma=1)
+    beta = pm.Normal('beta', mu=1, sigma=2)
+    gamma = pm.Exponential('gamma', lam=1)
+    
+    yolk = pm.Normal('yolk', sigma=gamma, mu=alpha + beta*data['volume'], observed=data['Yolk'])
+    
+
+
+with model:
+    
+    itrace = pm.sample(random_seed=42)
+
+_ = az.plot_posterior(itrace, var_names=['alpha', 'beta', 'gamma'])
+
 
