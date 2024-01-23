@@ -5,7 +5,7 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.14.1
+#       jupytext_version: 1.16.0
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -13,13 +13,13 @@
 # ---
 
 # # Programming in Python
-# ## Exam: July 5, 2023
+# ## Exam: January 23, 2024
 #
-# You can solve the exercises below by using standard Python 3.10 libraries, NumPy, Matplotlib, Pandas, PyMC.
-# You can browse the documentation: [Python](https://docs.python.org/3.10/), [NumPy](https://numpy.org/doc/stable/user/index.html), [Matplotlib](https://matplotlib.org/stable/users/index.html), [Pandas](https://pandas.pydata.org/pandas-docs/stable/user_guide/index.html), [PyMC](https://docs.pymc.io).
+# You can solve the exercises below by using standard Python 3.11 libraries, NumPy, Matplotlib, Pandas, PyMC.
+# You can browse the documentation: [Python](https://docs.python.org/3.11/), [NumPy](https://numpy.org/doc/stable/user/index.html), [Matplotlib](https://matplotlib.org/stable/users/index.html), [Pandas](https://pandas.pydata.org/pandas-docs/stable/user_guide/index.html), [PyMC](https://docs.pymc.io).
 # You can also look at the [slides of the course](https://homes.di.unimi.it/monga/lucidi2223/pyqb00.pdf) or your code on [GitHub](https://github.com).
 #
-# **It is forbidden to communicate with others.**
+# **It is forbidden to communicate with others or "ask questions" online (i.e., stackoverflow is ok if the answer is already there, but you cannot ask a new question)**
 #
 # To test examples in docstrings use
 #
@@ -77,7 +77,7 @@ data['Species'] = data['Image'].str.split('-').apply(lambda s: SPECIES[s[0]])
 
 # -
 
-# ### Exercise 3 (max 7 points)
+# ### Exercise 3 (max 4 points)
 #
 # Define a function `ellipsoid_volume` that takes three floating point numbers and returns the volume of an ellipsoid given the semi-axes. The volume is given by the formula:
 #
@@ -96,15 +96,7 @@ def ellipsoid_volume(a: float, b: float, c: float) -> float:
     """
     assert a > 0 and b > 0 and c > 0
     return (4/3)*np.pi*a*b*c
-    
 
-
-# +
-# You can test your docstrings by uncommenting the following two lines
-
-import doctest
-doctest.testmod()
-# -
 
 # ### Exercise 4 (max 4 points)
 #
@@ -112,7 +104,7 @@ doctest.testmod()
 
 data['x'] = 4*data['scan.area']/(np.pi*data['scan.width'])
 
-# ### Exercise 5 (max 4 points)
+# ### Exercise 5 (max 5 points)
 #
 # Add a column to the data with the longest axes (among `scan.width`, `scan.length`, and $x$, see previous exercise).
 
@@ -120,7 +112,7 @@ data['longest'] = data[['scan.width', 'scan.length', 'x']].apply(lambda t: max(t
 
 assert (data['longest'] >= data['x']).all() and (data['longest'] >= data['scan.width']).all() and (data['longest'] >= data['scan.length']).all()
 
-# ### Exercise 6 (max 4 points)
+# ### Exercise 6 (max 5 points)
 #
 # Plot together the histograms of `scan.area` for each species.
 
@@ -130,7 +122,7 @@ for s in data['Species'].unique():
 ax.set_title('Planar area of eggs')
 _ = ax.legend()
 
-# ### Exercise 7 (max 4 points)
+# ### Exercise 7 (max 6 points)
 #
 # Make a scatter plot with the volume (computed using `scan.width`, `scan.length`, and $x$ -- see Exercise 4 -- and the function defined in Exercise 3) versus the sum of Yolk and Albumen. Color the points according to the species. Pay attention to interpret correctly the numbers as axis or semi-axis.
 
@@ -147,35 +139,38 @@ ax.set_ylabel('Yolk + Albumen (g)')
 _ = ax.legend()
 # -
 
-# ### Exercise 8 (max 5 points)
+# ### Exercise 8 (max 4 points)
 #
 # Consider this statistical model:
 #
-# - a parameter $\alpha$ is normally distributed with $\mu = 0$ and $\sigma = 1$ 
-# - a parameter $\beta$ is normally distributed with $\mu = 1$ and $\sigma = 2$ 
-# - a parameter $\gamma$ is exponentially distributed with $\lambda = 1$
-# - the observed `Yolk` is normally distributed with standard deviation $\gamma$ and a mean given by $\alpha + \beta \cdot V$ (where $V$ is the volume computed as in Exercise 7).
-#
-# Code this model with pymc, sample the model, and plot the summary of the resulting estimation by using `az.plot_posterior`. Feel free to ignore the warning about the missing values.
+# - the observed weight of `Albumen` together with `Yolk` is normally distributed with standard deviation $\gamma$ and a mean given by $\alpha + \beta \cdot V$ (where $V$ is the volume computed as in Exercise 7).
+# - parameter $\alpha$ is normally distributed with $\mu = 0$ and $\sigma = 3$ 
+# - parameter $\beta$ is normally distributed with $\mu = 0$ and $\sigma = 3$ 
+# - parameter $\gamma$ is exponentially distributed with $\lambda = 1$
 #
 #
+# Code this model with pymc, sample the model **considering only the data points with a value for both the yolk and the albumen**, and plot the summaries of the resulting estimation by using `az.plot_posterior`. 
 #
 #
+
+# +
+data = data[~data['Albumen'].isnull() & ~data['Yolk'].isnull()]
 
 with pm.Model() as model:
     
     alpha = pm.Normal('alpha', mu=0, sigma=1)
-    beta = pm.Normal('beta', mu=1, sigma=2)
+    beta = pm.Normal('beta', mu=0, sigma=1)
     gamma = pm.Exponential('gamma', lam=1)
     
-    yolk = pm.Normal('yolk', sigma=gamma, mu=alpha + beta*data['volume'], observed=data['Yolk'])
-    
-
+    content = pm.Normal('content', sigma=gamma, mu=alpha + beta*data['volume'], observed=data['Albumen']+data['Yolk'])
+# -
 
 with model:
     
     itrace = pm.sample(random_seed=42)
 
 _ = az.plot_posterior(itrace, var_names=['alpha', 'beta', 'gamma'])
+
+az.summary(itrace)
 
 
