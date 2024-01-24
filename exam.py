@@ -126,7 +126,7 @@ _ = ax.legend()
 #
 # Make a scatter plot with the volume (computed using `scan.width`, `scan.length`, and $x$ -- see Exercise 4 -- and the function defined in Exercise 3) versus the sum of Yolk and Albumen. Color the points according to the species. Pay attention to interpret correctly the numbers as axis or semi-axis.
 
-data['volume'] = data[['scan.width', 'scan.length','x']].apply(lambda t: ellipsoid_volume(t[0]/2, t[1]/2, t[2]/2), axis=1)
+data['volume'] = data.apply(lambda t: ellipsoid_volume(t['scan.width']/2, t['scan.length']/2, t['x']/2), axis=1)
 
 # +
 fig, ax = plt.subplots(1)
@@ -158,8 +158,8 @@ data = data[~data['Albumen'].isnull() & ~data['Yolk'].isnull()]
 
 with pm.Model() as model:
     
-    alpha = pm.Normal('alpha', mu=0, sigma=1)
-    beta = pm.Normal('beta', mu=0, sigma=1)
+    alpha = pm.Normal('alpha', mu=0, sigma=3)
+    beta = pm.Normal('beta', mu=0, sigma=3)
     gamma = pm.Exponential('gamma', lam=1)
     
     content = pm.Normal('content', sigma=gamma, mu=alpha + beta*data['volume'], observed=data['Albumen']+data['Yolk'])
