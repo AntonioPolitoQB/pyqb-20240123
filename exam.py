@@ -52,8 +52,7 @@ import arviz as az   # type: ignore
 #
 #
 #
-
-pass
+raw = pd.read_csv('EPE.csv', sep=',')
 
 # ### Exercise 2 (max 3 points)
 #
@@ -61,10 +60,33 @@ pass
 #
 
 # +
+raw[['Species', 'col']] = raw['Image'].str.split('-', expand=True)
+raw = raw.drop(columns=['col'])
 
-pass
+Species_arr = np.array(['Shi', 'Peijian', 'Chen', 'Long', 'Quinn', 'Brady', 'Yu', 'Kexin', 'Miao', 'Qinyue', 'Guo', 'Xuchen', 'Lian', 'Meng', 'Gielis', 'Johan', 'Niklas', 'Karl'])
+Species_Id = np.array(raw['Species'])
 
-# -
+for i in range(len(Species_Id)):
+    if Species_Id[i] == '1':
+        Species_Id[i] = Species_arr[0]
+    elif Species_Id[i] == '2':
+        Species_Id[i] = Species_arr[1]
+    elif Species_Id[i] == '3':
+        Species_Id[i] = Species_arr[2]
+    elif Species_Id[i] == '4':
+        Species_Id[i] = Species_arr[3]
+    elif Species_Id[i] == '5':
+        Species_Id[i] = Species_arr[4]
+    elif Species_Id[i] == '6':
+        Species_Id[i] = Species_arr[5]
+    elif Species_Id[i] == '7':
+        Species_Id[i] = Species_arr[6]
+
+raw['Species'] = Species_Id
+
+    
+# or ,dictionary { ... : ..., , split and df[species_Id].map(dictionary)
+#                  ... : ...}
 
 # ### Exercise 3 (max 4 points)
 #
@@ -77,25 +99,29 @@ pass
 #
 # To get the full marks, you should declare correctly the type hints and add a test within a doctest string.
 
-pass
+def ellipsoid_volume(a: float, b: float, c:float)->float:
+    return (4/3)*np.pi*a*b*c
 
 # ### Exercise 4 (max 4 points)
 #
 # Consider the ellipsoid $E$ defined by a `scan.length` (the axis $l$), a `scan.width` (an axis $w$ orthogonal to $l$) and a third axis $x$ (orthogonal to both $l$ and $w$). Then assume `scan.area` is given by $\pi\frac{scan.width}{2}\frac{x}{2}$. Add a column to the data with the values of $x$.
 
-pass
+raw['third_axis'] = (2 * raw['scan.area'])/(raw['scan.width'] * np.pi)
 
 # ### Exercise 5 (max 5 points)
 #
 # Add a column to the data with the longest axes (among `scan.width`, `scan.length`, and $x$, see previous exercise).
 
-pass
+raw['longest_axis'] = raw[['scan.length', 'scan.width', 'third_axis']].max(axis=1)
 
+raw['Volume'] = ellipsoid_volume(raw['scan.length'], raw['scan.width'], raw['third_axis'])
+#axis 1 is for access the data
 # ### Exercise 6 (max 5 points)
 #
 # Plot together the histograms of `scan.area` for each species.
 
-pass
+plt.hist(raw['scan.area'], bins=50)
+plt.show()
 
 # ### Exercise 7 (max 6 points)
 #
@@ -117,4 +143,17 @@ pass
 #
 #
 
-pass
+f_raw = raw.dropna(subset=['Yolk', 'Albumen'])
+raw['Total_weight'] = raw['Yolk'] + raw['Albumen']
+with pm.Model() as model:
+    alpha = pm.Normal("alpha", mu=0, sigma=3)
+    beta = pm.Normal("beta", mu=0, sigma=3)
+    gamma = pm.Exponential("gamma", lam=1)
+    
+    mu = alpha + beta * raw['Volume']
+    observed_weights = pm.Normal("observed_weights", mu=mu, sigma=gamma, observed=raw['Total_weight'])
+    
+    trace = pm.sample(1000, tune=1000, return_inferencedata=True)
+    
+az.plot_posterior(trace)
+plt.show()
